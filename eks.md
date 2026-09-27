@@ -190,16 +190,33 @@ flowchart TD
 
 ## 7. Ingress & Egress — secured traffic flow
 
-Two directions of traffic matter, and each needs its own security story:
-- **Ingress** — traffic coming *into* the cluster from outside (users, partners).
-- **Egress** — traffic leaving the cluster to *external* destinations (SaaS APIs, AWS services).
-- **East-west** — internal service-to-service traffic *between* Pods.
+Networking people describe cluster traffic with a **compass model**:
+- **North-South** — traffic crossing the cluster boundary. **North = ingress** (into the cluster), **South = egress** (out of the cluster).
+- **East-West** — traffic *between* services **inside** the cluster (Pod-to-Pod, service-to-service).
+
+![EKS North-South & East-West Traffic](eks-ns-ew.svg)
+
+### 7.1 The compass model at a glance
+
+| Direction | What it is | Concrete calls | Primary controls |
+|-----------|-----------|----------------|------------------|
+| **North → South (ingress)** | External clients calling *into* the cluster | User browser → `app.example.com` → ALB → Ingress → frontend Pod | WAF/Shield, TLS on ALB, Ingress rules, NetworkPolicy "allow from ingress" |
+| **North → South (egress)** | Pods calling *out* to external destinations | Pod → S3/ECR (AWS), Pod → Stripe/SaaS API (internet) | Default-deny egress + FQDN allow-list, **VPC Endpoints** for AWS, NAT for internet |
+| **East ↔ West** | Service-to-service *inside* the cluster | frontend → backend → cache/worker; cross-namespace calls | **mTLS** (mesh/Cilium), default-deny NetworkPolicy, CoreDNS service discovery |
+
+**Why the distinction matters:**
+- **North-South** is your *perimeter* — it's where WAF, TLS, and load balancers live. Historically this got all the security attention.
+- **East-West** is your *interior* — and it's where breaches spread. A compromised frontend Pod shouldn't be able to reach the database Pod unless explicitly allowed. That's why modern EKS uses **zero-trust east-west**: default-deny NetworkPolicies + mTLS, so every internal hop is authenticated and authorized, not just trusted because it's "inside."
+
+> **Mental model:** North-South guards the *door*; East-West guards every *room inside*. You need both.
+
+---
+
+### 7.2 Ingress — external → Pod (defense in depth)
 
 ![EKS Ingress & Egress — Secured Traffic Flow](eks-traffic-flow.svg)
 
 *🔒 marks where a security control is enforced. Green = ingress, orange = egress, blue = internal east-west.*
-
-### 7.1 Ingress — external → Pod (defense in depth)
 
 Every hop adds a control, so a bad request is filtered as early as possible:
 
@@ -214,7 +231,7 @@ Every hop adds a control, so a bad request is filtered as early as possible:
 
 The key idea: **only load balancers live in public subnets; Pods live in private subnets** and are never directly reachable from the internet.
 
-### 7.2 East-west — service-to-service (internal view)
+### 7.3 East-west — service-to-service (internal view)
 
 Inside the cluster, traffic between Pods should be **zero-trust**, not open by default:
 
@@ -231,7 +248,7 @@ flowchart LR
 - **mTLS** — a service mesh (Istio/App Mesh) or **Cilium** gives mutual TLS + identity between services, so traffic is encrypted and authenticated even inside the VPC.
 - **IRSA per ServiceAccount** — each workload gets only the AWS permissions it needs.
 
-### 7.3 Egress — Pod → external (controlled, not wide-open)
+### 7.4 Egress — Pod → external (controlled, not wide-open)
 
 By default a Pod can reach anything the NAT allows. Lock this down:
 
@@ -269,7 +286,7 @@ flowchart TB
     VPA -.reschedules.-> KARP
 ```
 
-### 7.1 The tools
+### 8.1 The tools
 
 | Tool | Axis | Scales on | Best for |
 |------|------|-----------|----------|
@@ -278,7 +295,7 @@ flowchart TB
 | **KEDA** (Kubernetes Event-Driven Autoscaling) | Pods (out) | **Events**: SQS/Kafka depth, Prometheus, cron, 50+ scalers | Bursty/async work, **scale-to-zero** |
 | **Karpenter** | Nodes | Pending (unschedulable) Pods | Providing the compute HPA/KEDA need |
 
-### 7.2 How they work together
+### 8.2 How they work together
 
 A real pipeline usually combines them: **KEDA or HPA** decides *how many Pods*, and when those Pods can't fit, **Karpenter** launches *right-sized nodes* in seconds. **VPA** keeps each Pod's requests accurate so bin-packing stays efficient.
 
