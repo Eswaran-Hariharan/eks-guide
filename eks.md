@@ -151,7 +151,143 @@ flowchart LR
 
 ---
 
-## 6. Security — defense in depth
+## 6. Choosing a CNI — VPC CNI vs Calico vs Cilium
+
+The **CNI (Container Network Interface)** plugin decides how Pods get networking and how network policy is enforced. On EKS you have three common choices, and they solve different problems.
+
+```mermaid
+flowchart TD
+    Q{What do you need?} --> A[Native VPC IPs +<br/>AWS-integrated networking]
+    Q --> B[Rich, portable<br/>network policy]
+    Q --> C[eBPF performance,<br/>observability, mesh, multi-cluster]
+    A --> VPC[Amazon VPC CNI<br/>default on EKS]
+    B --> CAL[Calico<br/>policy engine]
+    C --> CIL[Cilium<br/>eBPF dataplane]
+    VPC -.add policy.-> CAL
+    VPC -.or replace dataplane.-> CIL
+```
+
+### 6.1 The three options
+
+| | **Amazon VPC CNI** | **Calico** | **Cilium** |
+|---|---|---|---|
+| **What it is** | AWS default CNI | Network policy engine (often layered on VPC CNI) | eBPF-based CNI + policy + observability |
+| **Pod IPs** | Real VPC IPs (native) | Uses VPC CNI for IPAM (typical on EKS) | Overlay or VPC-native (ENI mode) |
+| **Network policy** | Basic (via add-on) | **Rich** — global, namespaced, DNS, tiers | **Rich** — L3/L4 **and L7 (HTTP)**, identity-based |
+| **Data plane** | iptables/route | iptables or eBPF | **eBPF** (fast, no iptables sprawl) |
+| **Observability** | CloudWatch/flow logs | Basic | **Hubble** — deep flow visibility |
+| **Extras** | AWS-native SG per Pod | Mature policy tiers | Service mesh, multi-cluster, encryption |
+
+### 6.2 When to use what
+
+- **Amazon VPC CNI (default):** you want Pods as first-class VPC citizens, security-group-per-Pod, and the least operational overhead. Great for most teams. Add the **network policy add-on** for basic policies.
+- **Calico:** you need **advanced, portable NetworkPolicy** (tiered rules, global policies, DNS-based egress) and want a battle-tested policy engine. Common when policy requirements outgrow the VPC CNI add-on. Often runs **for policy** while VPC CNI still does IP assignment.
+- **Cilium:** you want **eBPF performance**, **L7-aware policy** (allow only `GET /health`), rich flow observability via **Hubble**, transparent encryption, or service-mesh / multi-cluster features. Pick it when networking is a first-class concern and you'll invest in it.
+
+> **Rule of thumb:** Start with **VPC CNI** (+ policy add-on). Move to **Calico** when you need serious policy, or **Cilium** when you need eBPF speed, L7 policy, and observability.
+
+---
+
+## 7. Scalability — HPA, VPA, KEDA & Karpenter
+
+Scaling in Kubernetes happens on **two axes**: scaling **Pods** (more/bigger replicas) and scaling **Nodes** (more capacity to place them). Use the right tool for each.
+
+```mermaid
+flowchart TB
+    subgraph POD["Pod scaling"]
+        HPA[HPA<br/>more replicas<br/>on CPU/mem/custom]
+        VPA[VPA<br/>right-size a Pod's<br/>CPU/mem requests]
+        KEDA[KEDA<br/>event-driven replicas<br/>queue depth, Kafka, cron...]
+    end
+    subgraph NODE["Node scaling"]
+        KARP[Karpenter<br/>launch right-sized EC2<br/>for pending Pods]
+    end
+    HPA --> KARP
+    KEDA --> KARP
+    VPA -.reschedules.-> KARP
+```
+
+### 7.1 The tools
+
+| Tool | Axis | Scales on | Best for |
+|------|------|-----------|----------|
+| **HPA** (Horizontal Pod Autoscaler) | Pods (out) | CPU, memory, or **custom/metrics** | Steady traffic that grows with load |
+| **VPA** (Vertical Pod Autoscaler) | Pods (up) | Actual usage → adjusts requests/limits | Right-sizing; workloads you can't shard |
+| **KEDA** (Kubernetes Event-Driven Autoscaling) | Pods (out) | **Events**: SQS/Kafka depth, Prometheus, cron, 50+ scalers | Bursty/async work, **scale-to-zero** |
+| **Karpenter** | Nodes | Pending (unschedulable) Pods | Providing the compute HPA/KEDA need |
+
+### 7.2 How they work together
+
+A real pipeline usually combines them: **KEDA or HPA** decides *how many Pods*, and when those Pods can't fit, **Karpenter** launches *right-sized nodes* in seconds. **VPA** keeps each Pod's requests accurate so bin-packing stays efficient.
+
+- **HPA vs VPA:** don't run both on **CPU/memory** for the same workload (they fight). HPA on custom metrics + VPA on requests can coexist.
+- **KEDA vs HPA:** KEDA actually *builds on* HPA under the hood but adds event sources and **scale-to-zero** — ideal for queue workers and cron jobs.
+
+> **Rule of thumb:** **HPA** for request-driven services, **KEDA** for event/queue-driven and scale-to-zero, **VPA** for right-sizing, **Karpenter** underneath to supply nodes.
+
+---
+
+## 8. Cluster upgrades
+
+EKS releases a new Kubernetes version regularly, and each version is supported for a limited window — so upgrades are a recurring, planned activity, not a one-off.
+
+```mermaid
+flowchart LR
+    A[Check release notes<br/>+ deprecated APIs] --> B[Upgrade control plane<br/>one minor version]
+    B --> C[Upgrade add-ons<br/>VPC CNI, CoreDNS, kube-proxy]
+    C --> D[Upgrade data plane<br/>nodes / node groups]
+    D --> E[Validate workloads]
+    E -->|next minor| A
+```
+
+**Key rules:**
+- **One minor version at a time** (e.g. 1.30 → 1.31), control plane first, then nodes. Skipping isn't allowed.
+- **Node upgrades** roll gracefully: managed node groups **cordon + drain** old nodes while new ones join; Karpenter nodes are replaced via **drift/disruption**. `PodDisruptionBudgets` keep enough replicas alive during the roll.
+- **Check deprecated APIs** before upgrading (tools like `kubent`/`pluto`) so manifests don't break on the new version.
+- **Add-ons matter:** keep VPC CNI, CoreDNS, and kube-proxy compatible with the target version.
+- **Blue/green cluster** upgrades (stand up a new cluster, shift traffic) are an option for very high-stakes, low-risk-tolerance environments.
+
+| Approach | How | Risk |
+|----------|-----|------|
+| **In-place** | Upgrade control plane + roll nodes in the same cluster | Standard, lower effort |
+| **Blue/green cluster** | New cluster on target version, migrate workloads, shift DNS | Safest rollback, more effort |
+
+---
+
+## 9. Deployment strategies
+
+How you ship a new version of an app into the cluster determines your blast radius if something's wrong.
+
+```mermaid
+flowchart LR
+    subgraph Rolling
+    R1[v1 pods] --> R2[mix v1+v2] --> R3[v2 pods]
+    end
+    subgraph BlueGreen["Blue / Green"]
+    B1[Blue v1 live] -. switch .-> B2[Green v2 live]
+    end
+    subgraph Canary
+    C1[v1 90%] --> C2[v2 10% -> 50% -> 100%]
+    end
+```
+
+| Strategy | How it works | Trade-off |
+|----------|-------------|-----------|
+| **Rolling update** (K8s default) | Replace Pods gradually, respecting `maxUnavailable`/`maxSurge` | Simple; brief version mix |
+| **Blue/Green** | Run v2 alongside v1, flip traffic at once | Instant rollback; 2x resources during cutover |
+| **Canary** | Send a small % of traffic to v2, ramp up if healthy | Safest for risk; needs traffic-splitting |
+| **Feature-flagged** | Ship code dark, toggle at runtime | Decouples deploy from release; app complexity |
+
+**Tooling on EKS:**
+- **GitOps** — **Argo CD** or **Flux** reconcile the cluster to what's declared in Git. The repo is the source of truth (also the backbone of DR re-creation).
+- **Progressive delivery** — **Argo Rollouts** or **Flagger** automate canary/blue-green with metric-based promotion and automatic rollback.
+- **Ingress/mesh traffic splitting** — ALB weighted target groups, or a service mesh (Istio/Cilium/App Mesh) for fine-grained canaries.
+
+> **Rule of thumb:** Rolling for everyday changes, **canary** (via Argo Rollouts/Flagger) for risky ones, **blue/green** when you need instant rollback — all driven by **GitOps**.
+
+---
+
+## 10. Security — defense in depth
 
 EKS security spans identity, network, secrets, and the nodes themselves.
 
@@ -189,7 +325,7 @@ flowchart LR
 
 ---
 
-## 7. Storage
+## 11. Storage
 
 Pods are ephemeral; data needs somewhere durable to live.
 
@@ -203,15 +339,15 @@ Persistent storage is requested with a **PersistentVolumeClaim (PVC)**; the CSI 
 
 ---
 
-## 8. Disaster Recovery (DR)
+## 12. Disaster Recovery (DR)
 
 DR is about surviving the loss of a zone — or an entire region.
 
-### 8.1 Multi-AZ (baseline, always do this)
+### 12.1 Multi-AZ (baseline, always do this)
 
 Spread nodes across **3 AZs** and run multiple replicas. If one AZ fails, the scheduler reschedules Pods onto healthy AZs. The EKS control plane is already multi-AZ by default.
 
-### 8.2 Multi-Region (for serious RTO/RPO targets)
+### 12.2 Multi-Region (for serious RTO/RPO targets)
 
 ```mermaid
 flowchart LR
@@ -238,7 +374,7 @@ Key ingredients: **GitOps** (ArgoCD/Flux) so the whole cluster is re-creatable f
 
 ---
 
-## 9. Backup — Velero
+## 13. Backup — Velero
 
 Multi-AZ protects against hardware failure; **backup** protects against *mistakes* (a bad deploy, an accidental `delete`) and enables migration.
 
@@ -258,11 +394,11 @@ flowchart LR
 
 ---
 
-## 10. Observability with OpenTelemetry (OTel)
+## 14. Observability with OpenTelemetry (OTel)
 
 You can't operate what you can't see. Modern EKS observability standardizes on **OpenTelemetry** — a vendor-neutral standard for the three signals: **metrics, logs, and traces**.
 
-### 10.1 The pipeline
+### 14.1 The pipeline
 
 ```mermaid
 flowchart LR
@@ -279,7 +415,7 @@ flowchart LR
 - **Logs** → **CloudWatch Logs** (via Fluent Bit / OTel).
 - **Visualize** → **Amazon Managed Grafana** or CloudWatch dashboards.
 
-### 10.2 Why OTel instead of proprietary agents
+### 14.2 Why OTel instead of proprietary agents
 
 | | Proprietary agent | OpenTelemetry |
 |---|---|---|
@@ -290,13 +426,16 @@ flowchart LR
 
 ---
 
-## 11. Putting it all together — production checklist
+## 15. Putting it all together — production checklist
 
 - **Cluster:** EKS control plane (managed, multi-AZ); GitOps (ArgoCD/Flux) as source of truth.
 - **Compute:** Managed Node Groups for baseline + **Karpenter** for elastic, right-sized, Spot-friendly scaling.
-- **Networking:** VPC across 3 AZs, public/private subnets, IGW + NAT, VPC CNI, **AWS Load Balancer Controller** (ALB/NLB), NetworkPolicies.
+- **Networking:** VPC across 3 AZs, public/private subnets, IGW + NAT, **VPC CNI** (add **Calico** for policy or **Cilium** for eBPF/L7), **AWS Load Balancer Controller** (ALB/NLB), NetworkPolicies.
+- **Scaling:** **HPA** for request-driven, **KEDA** for event-driven + scale-to-zero, **VPA** for right-sizing, **Karpenter** for nodes.
 - **Security:** IRSA / Pod Identity, RBAC, per-Pod security groups, Secrets Manager + KMS, ECR image scanning, GuardDuty EKS Protection.
 - **Storage:** EBS/EFS CSI drivers, PVCs, KMS-encrypted volumes.
+- **Upgrades:** one minor version at a time, control plane → add-ons → nodes; check deprecated APIs; PodDisruptionBudgets.
+- **Deployment:** GitOps (Argo CD/Flux); rolling by default, **canary/blue-green** via Argo Rollouts/Flagger for risky changes.
 - **DR:** multi-AZ by default; multi-region (warm standby/active-active) with data replication + Route 53 failover.
 - **Backup:** **Velero** to S3 + volume snapshots, cross-region, restore-tested.
 - **Observability:** **OpenTelemetry** via **ADOT** → CloudWatch / AMP / X-Ray / Managed Grafana.
@@ -307,6 +446,8 @@ flowchart LR
 
 - [Amazon EKS documentation](https://docs.aws.amazon.com/eks/) *(content rephrased from official AWS docs for compliance)*
 - [Karpenter](https://karpenter.sh/)
+- [Calico](https://docs.tigera.io/) · [Cilium](https://cilium.io/)
+- [KEDA](https://keda.sh/) · [Argo Rollouts](https://argoproj.github.io/rollouts/) · [Flagger](https://flagger.app/)
 - [Velero](https://velero.io/)
 - [AWS Distro for OpenTelemetry (ADOT)](https://aws-otel.github.io/)
 
