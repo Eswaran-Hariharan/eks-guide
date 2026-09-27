@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 900" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3f5f7"/></linearGradient>
+    <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#495a6e"/></marker>
+    <marker id="arO" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ec7211"/></marker>
+    <style>
+      .t { font-size:12px; font-weight:700; fill:#232f3e; }
+      .s { font-size:10px; fill:#5a6b7b; }
+      .ic { font-size:18px; }
+      .lbl { font-size:12px; font-weight:800; letter-spacing:.4px; }
+      .note { font-size:10.5px; fill:#697786; }
+    </style>
+  </defs>
+  <rect width="1280" height="900" fill="url(#bg)"/>
+
+  <text x="36" y="44" font-size="23" font-weight="800" fill="#232f3e">Amazon EKS — Production Architecture</text>
+  <text x="36" y="66" font-size="12.5" fill="#697786">Managed control plane · multi-AZ VPC · Karpenter autoscaling · security, DR, backup &amp; OpenTelemetry</text>
+
+  <!-- AWS Cloud -->
+  <rect x="26" y="84" width="1228" height="792" rx="14" fill="none" stroke="#232f3e" stroke-width="2"/>
+  <rect x="40" y="72" width="120" height="26" rx="6" fill="#232f3e"/><text x="52" y="90" fill="#fff" font-size="12" font-weight="700">AWS Cloud</text>
+
+  <!-- Users -->
+  <g transform="translate(48,120)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#232f3e" stroke-width="1.5"/>
+    <text x="14" y="34" class="ic">👥</text><text x="44" y="28" class="t">Users</text><text x="44" y="44" class="s">Internet clients</text>
+  </g>
+  <!-- Route 53 -->
+  <g transform="translate(48,196)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="2"/><rect width="34" height="58" rx="10" fill="#8c4fff"/>
+    <text x="8" y="36" class="ic" fill="#fff">◐</text><text x="44" y="28" class="t">Route 53</text><text x="44" y="44" class="s">DNS + failover</text>
+  </g>
+  <!-- IGW -->
+  <g transform="translate(48,272)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="2"/><rect width="34" height="58" rx="10" fill="#8c4fff"/>
+    <text x="8" y="36" class="ic" fill="#fff">⛩</text><text x="44" y="28" class="t">Internet GW</text><text x="44" y="44" class="s">VPC edge</text>
+  </g>
+  <!-- ECR -->
+  <g transform="translate(48,372)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#ec7211" stroke-width="2"/><rect width="34" height="58" rx="10" fill="#ec7211"/>
+    <text x="8" y="36" class="ic" fill="#fff">▤</text><text x="44" y="28" class="t">Amazon ECR</text><text x="44" y="44" class="s">Image registry</text>
+  </g>
+  <!-- Secrets/KMS -->
+  <g transform="translate(48,440)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#dd344c" stroke-width="2"/><rect width="34" height="58" rx="10" fill="#dd344c"/>
+    <text x="8" y="36" class="ic" fill="#fff">🔐</text><text x="44" y="28" class="t">Secrets + KMS</text><text x="44" y="44" class="s">Encryption</text>
+  </g>
+  <!-- IAM / IRSA -->
+  <g transform="translate(48,508)">
+    <rect width="150" height="58" rx="10" fill="#fff" stroke="#dd344c" stroke-width="2"/><rect width="34" height="58" rx="10" fill="#dd344c"/>
+    <text x="8" y="36" class="ic" fill="#fff">⚿</text><text x="44" y="28" class="t">IAM · IRSA</text><text x="44" y="44" class="s">Pod Identity</text>
+  </g>
+
+  <!-- ===== EKS Control Plane (AWS managed) ===== -->
+  <rect x="228" y="118" width="470" height="120" rx="12" fill="#eef3ff" stroke="#4f5fd6" stroke-width="1.5"/>
+  <text x="244" y="140" class="lbl" fill="#3a49b8">EKS CONTROL PLANE · AWS-MANAGED · MULTI-AZ</text>
+  <g transform="translate(244,150)">
+    <rect width="140" height="72" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="2"/><rect width="34" height="72" rx="10" fill="#4f5fd6"/>
+    <text x="8" y="43" class="ic" fill="#fff">✥</text><text x="44" y="30" class="t">API Server</text><text x="44" y="46" class="s">+ Scheduler</text><text x="44" y="60" class="s">+ Controllers</text>
+  </g>
+  <g transform="translate(398,150)">
+    <rect width="130" height="72" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="2"/><rect width="34" height="72" rx="10" fill="#4f5fd6"/>
+    <text x="8" y="43" class="ic" fill="#fff">▦</text><text x="44" y="30" class="t">etcd</text><text x="44" y="46" class="s">Cluster state</text><text x="44" y="60" class="s">KMS-encrypted</text>
+  </g>
+  <g transform="translate(542,150)">
+    <rect width="140" height="72" rx="10" fill="#fff" stroke="#01a88d" stroke-width="2"/><rect width="34" height="72" rx="10" fill="#01a88d"/>
+    <text x="8" y="43" class="ic" fill="#fff">⚙</text><text x="44" y="30" class="t">Karpenter</text><text x="44" y="46" class="s">Watches Pods,</text><text x="44" y="60" class="s">launches EC2</text>
+  </g>
+
+  <!-- ===== VPC ===== -->
+  <rect x="228" y="256" width="800" height="470" rx="12" fill="#f0fbf8" stroke="#01a88d" stroke-width="1.6"/>
+  <text x="244" y="278" class="lbl" fill="#017a5e">VPC · 3 AVAILABILITY ZONES</text>
+
+  <!-- Load balancers row -->
+  <g transform="translate(244,290)">
+    <rect width="180" height="56" rx="10" fill="#fff" stroke="#e0004d" stroke-width="2"/><rect width="34" height="56" rx="10" fill="#e0004d"/>
+    <text x="8" y="34" class="ic" fill="#fff">⇄</text><text x="44" y="26" class="t">ALB (Ingress)</text><text x="44" y="42" class="s">LB Controller · TLS</text>
+  </g>
+  <g transform="translate(438,290)">
+    <rect width="170" height="56" rx="10" fill="#fff" stroke="#e0004d" stroke-width="2"/><rect width="34" height="56" rx="10" fill="#e0004d"/>
+    <text x="8" y="34" class="ic" fill="#fff">≋</text><text x="44" y="26" class="t">NLB</text><text x="44" y="42" class="s">TCP/UDP</text>
+  </g>
+  <g transform="translate(626,290)">
+    <rect width="180" height="56" rx="10" fill="#fff" stroke="#7aa116" stroke-width="2"/><rect width="34" height="56" rx="10" fill="#7aa116"/>
+    <text x="8" y="34" class="ic" fill="#fff">⇥</text><text x="44" y="26" class="t">NAT Gateway</text><text x="44" y="42" class="s">Outbound only</text>
+  </g>
+  <text x="248" y="366" class="note">PUBLIC SUBNETS (per AZ): ALB / NLB / NAT</text>
+
+  <!-- 3 AZ private subnets with nodes -->
+  <g>
+    <!-- AZ-a -->
+    <rect x="244" y="376" width="250" height="164" rx="10" fill="#ffffff" stroke="#01a88d" stroke-width="1.2"/>
+    <text x="256" y="396" class="t" fill="#017a5e">AZ-a · Private subnet</text>
+    <rect x="258" y="406" width="105" height="56" rx="8" fill="#fff5ec" stroke="#ec7211" stroke-width="1.6"/>
+    <text x="266" y="426" class="s" fill="#ec7211">Managed Node</text><text x="266" y="440" class="t">EC2 + Pods</text><text x="266" y="454" class="s">VPC CNI IPs</text>
+    <rect x="374" y="406" width="105" height="56" rx="8" fill="#eef7f4" stroke="#01a88d" stroke-width="1.6"/>
+    <text x="382" y="426" class="s" fill="#01864f">Karpenter Node</text><text x="382" y="440" class="t">Spot EC2</text><text x="382" y="454" class="s">right-sized</text>
+    <rect x="258" y="470" width="221" height="56" rx="8" fill="#f7f9fb" stroke="#232f3e" stroke-width="1.2"/>
+    <text x="266" y="490" class="s">Pods → ServiceAccount → IRSA/Pod Identity</text><text x="266" y="506" class="s">NetworkPolicies · per-Pod Security Groups</text><text x="266" y="519" class="s">EBS/EFS CSI volumes (KMS)</text>
+
+    <!-- AZ-b -->
+    <rect x="504" y="376" width="250" height="164" rx="10" fill="#ffffff" stroke="#01a88d" stroke-width="1.2"/>
+    <text x="516" y="396" class="t" fill="#017a5e">AZ-b · Private subnet</text>
+    <rect x="518" y="406" width="105" height="56" rx="8" fill="#fff5ec" stroke="#ec7211" stroke-width="1.6"/>
+    <text x="526" y="426" class="s" fill="#ec7211">Managed Node</text><text x="526" y="440" class="t">EC2 + Pods</text>
+    <rect x="634" y="406" width="105" height="56" rx="8" fill="#eef7f4" stroke="#01a88d" stroke-width="1.6"/>
+    <text x="642" y="426" class="s" fill="#01864f">Karpenter Node</text><text x="642" y="440" class="t">On-Demand</text>
+    <rect x="518" y="470" width="221" height="56" rx="8" fill="#f7f9fb" stroke="#232f3e" stroke-width="1.2"/>
+    <text x="526" y="490" class="s">Replicas spread across AZs</text><text x="526" y="506" class="s">Fargate profile (optional, serverless Pods)</text><text x="526" y="519" class="s">Self-healing on AZ loss</text>
+  </g>
+
+  <!-- AZ-c compact -->
+  <rect x="764" y="376" width="252" height="164" rx="10" fill="#ffffff" stroke="#01a88d" stroke-width="1.2"/>
+  <text x="776" y="396" class="t" fill="#017a5e">AZ-c · Private subnet</text>
+  <rect x="778" y="406" width="110" height="56" rx="8" fill="#fff5ec" stroke="#ec7211" stroke-width="1.6"/>
+  <text x="786" y="426" class="s" fill="#ec7211">Managed Node</text><text x="786" y="440" class="t">EC2 + Pods</text>
+  <rect x="898" y="406" width="106" height="56" rx="8" fill="#eef7f4" stroke="#01a88d" stroke-width="1.6"/>
+  <text x="906" y="426" class="s" fill="#01864f">Karpenter</text><text x="906" y="440" class="t">Spot EC2</text>
+  <rect x="778" y="470" width="226" height="56" rx="8" fill="#f7f9fb" stroke="#232f3e" stroke-width="1.2"/>
+  <text x="786" y="490" class="s">GuardDuty EKS Protection</text><text x="786" y="506" class="s">Pod Security Standards</text><text x="786" y="519" class="s">RBAC + EKS access entries</text>
+
+  <!-- Storage row inside VPC -->
+  <g transform="translate(244,556)">
+    <rect width="150" height="54" rx="10" fill="#fff" stroke="#7aa116" stroke-width="2"/><rect width="34" height="54" rx="10" fill="#7aa116"/>
+    <text x="8" y="33" class="ic" fill="#fff">▤</text><text x="44" y="26" class="t">EBS / EFS</text><text x="44" y="42" class="s">CSI volumes</text>
+  </g>
+  <g transform="translate(408,556)">
+    <rect width="150" height="54" rx="10" fill="#fff" stroke="#7aa116" stroke-width="2"/><rect width="34" height="54" rx="10" fill="#7aa116"/>
+    <text x="8" y="33" class="ic" fill="#fff">◲</text><text x="44" y="26" class="t">Amazon S3</text><text x="44" y="42" class="s">Objects + backup</text>
+  </g>
+  <!-- Velero backup -->
+  <g transform="translate(572,556)">
+    <rect width="180" height="54" rx="10" fill="#fff" stroke="#232f3e" stroke-width="2"/><rect width="34" height="54" rx="10" fill="#232f3e"/>
+    <text x="8" y="33" class="ic" fill="#fff">💾</text><text x="44" y="26" class="t">Velero (Backup)</text><text x="44" y="42" class="s">Objects + PV snapshots → S3</text>
+  </g>
+
+  <!-- Observability lane inside VPC -->
+  <rect x="244" y="626" width="772" height="86" rx="10" fill="#fdf1f4" stroke="#c94f6d" stroke-width="1.4"/>
+  <text x="256" y="646" class="lbl" fill="#a83355">OBSERVABILITY · OPENTELEMETRY</text>
+  <g transform="translate(256,654)">
+    <rect width="150" height="48" rx="8" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/>
+    <text x="10" y="30" class="ic">📡</text><text x="40" y="22" class="t">ADOT Collector</text><text x="40" y="37" class="s">OTLP in</text>
+  </g>
+  <g transform="translate(420,654)">
+    <rect width="140" height="48" rx="8" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/>
+    <text x="40" y="22" class="t">CloudWatch</text><text x="40" y="37" class="s">logs + metrics</text><text x="12" y="30" class="ic">◔</text>
+  </g>
+  <g transform="translate(574,654)">
+    <rect width="140" height="48" rx="8" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/>
+    <text x="40" y="22" class="t">AMP</text><text x="40" y="37" class="s">Prometheus</text><text x="12" y="30" class="ic">📈</text>
+  </g>
+  <g transform="translate(728,654)">
+    <rect width="130" height="48" rx="8" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/>
+    <text x="40" y="22" class="t">X-Ray</text><text x="40" y="37" class="s">traces</text><text x="12" y="30" class="ic">🕸</text>
+  </g>
+  <g transform="translate(872,654)">
+    <rect width="132" height="48" rx="8" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/>
+    <text x="40" y="22" class="t">Grafana</text><text x="40" y="37" class="s">dashboards</text><text x="12" y="30" class="ic">📊</text>
+  </g>
+
+  <!-- ===== DR REGION ===== -->
+  <rect x="1046" y="256" width="182" height="470" rx="12" fill="#fbf7ff" stroke="#8c4fff" stroke-width="1.6"/>
+  <text x="1060" y="278" class="lbl" fill="#6b32d6">DR REGION</text>
+  <g transform="translate(1060,292)">
+    <rect width="150" height="60" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="2"/><rect width="34" height="60" rx="10" fill="#8c4fff"/>
+    <text x="8" y="37" class="ic" fill="#fff">⎈</text><text x="44" y="28" class="t">EKS (standby)</text><text x="44" y="44" class="s">GitOps re-create</text>
+  </g>
+  <g transform="translate(1060,368)">
+    <rect width="150" height="60" rx="10" fill="#fff" stroke="#7aa116" stroke-width="2"/><rect width="34" height="60" rx="10" fill="#7aa116"/>
+    <text x="8" y="37" class="ic" fill="#fff">▤</text><text x="44" y="28" class="t">ECR replica</text><text x="44" y="44" class="s">cross-region</text>
+  </g>
+  <g transform="translate(1060,444)">
+    <rect width="150" height="60" rx="10" fill="#fff" stroke="#3334b9" stroke-width="2"/><rect width="34" height="60" rx="10" fill="#3334b9"/>
+    <text x="8" y="37" class="ic" fill="#fff">⧉</text><text x="44" y="28" class="t">Data replica</text><text x="44" y="44" class="s">Aurora/DDB/S3</text>
+  </g>
+  <g transform="translate(1060,520)">
+    <rect width="150" height="60" rx="10" fill="#fff" stroke="#232f3e" stroke-width="1.5"/>
+    <text x="12" y="37" class="ic">💾</text><text x="44" y="28" class="t">Backup vault</text><text x="44" y="44" class="s">Velero (S3 CRR)</text>
+  </g>
+  <text x="1060" y="612" class="note">Warm standby /</text><text x="1060" y="626" class="note">active-active options.</text>
+  <text x="1060" y="648" class="note">Route 53 health-based</text><text x="1060" y="662" class="note">failover to DR.</text>
+
+  <!-- ===== connectors ===== -->
+  <line x1="198" y1="149" x2="198" y2="196" stroke="#495a6e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <path d="M198,225 C214,225 214,318 244,318" fill="none" stroke="#495a6e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <path d="M198,301 C220,301 220,318 244,318" fill="none" stroke="#495a6e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- ALB -> nodes -->
+  <path d="M334,346 C334,360 360,376 380,406" fill="none" stroke="#e0004d" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- control plane -> nodes (kubelet) -->
+  <path d="M314,222 C314,300 360,340 360,406" fill="none" stroke="#4f5fd6" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <!-- Karpenter -> Karpenter nodes -->
+  <path d="M612,222 C612,300 430,360 430,406" fill="none" stroke="#01a88d" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- ECR -> nodes -->
+  <path d="M198,401 C214,401 220,430 258,434" fill="none" stroke="#ec7211" stroke-width="1.6" marker-end="url(#arO)"/>
+  <!-- IAM -> pods -->
+  <path d="M198,537 C214,537 230,500 258,498" fill="none" stroke="#dd344c" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <!-- primary VPC -> DR -->
+  <path d="M1028,470 C1040,470 1044,470 1046,470" fill="none" stroke="#8c4fff" stroke-width="2" marker-end="url(#ar)"/>
+
+  <!-- Legend -->
+  <g transform="translate(36,742)">
+    <text x="0" y="12" font-size="12" font-weight="800" fill="#232f3e">Legend</text>
+    <rect x="70" y="3" width="14" height="10" rx="2" fill="#4f5fd6"/><text x="90" y="12" class="note">Control plane</text>
+    <rect x="190" y="3" width="14" height="10" rx="2" fill="#ec7211"/><text x="210" y="12" class="note">Managed nodes</text>
+    <rect x="330" y="3" width="14" height="10" rx="2" fill="#01a88d"/><text x="350" y="12" class="note">Karpenter</text>
+    <rect x="450" y="3" width="14" height="10" rx="2" fill="#e0004d"/><text x="470" y="12" class="note">Load balancing</text>
+    <rect x="580" y="3" width="14" height="10" rx="2" fill="#dd344c"/><text x="600" y="12" class="note">Security / IAM / KMS</text>
+    <rect x="740" y="3" width="14" height="10" rx="2" fill="#c94f6d"/><text x="760" y="12" class="note">Observability (OTel)</text>
+    <rect x="900" y="3" width="14" height="10" rx="2" fill="#8c4fff"/><text x="920" y="12" class="note">DR / DNS</text>
+    <rect x="1000" y="3" width="14" height="10" rx="2" fill="#7aa116"/><text x="1020" y="12" class="note">Storage</text>
+  </g>
+  <text x="36" y="796" class="note">Flow: Users → Route 53 → ALB/NLB (public subnets) → Pods on nodes (private subnets, VPC CNI IPs). Karpenter right-sizes EC2. IRSA grants Pod AWS access.</text>
+  <text x="36" y="814" class="note">Velero backs cluster + volumes to S3. ADOT ships metrics/logs/traces to CloudWatch/AMP/X-Ray/Grafana. Multi-AZ by default; DR region for regional failover.</text>
+</svg>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazon EKS — The Complete Guide</title>
+  <meta name="description" content="A complete guide to Amazon EKS: fundamentals, node options, VPC networking, Karpenter, security, storage, disaster recovery, backup with Velero, and OpenTelemetry observability." />
+  <script>(function(){ try { if (localStorage.getItem('eks-theme') === 'dark') document.documentElement.classList.add('dark'); } catch(e){} })();</script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="Toggle contents">☰</button>
+    <span class="brand">⎈ Amazon EKS — The Complete Guide</span>
+    <span class="spacer"></span>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="layout">
+    <div class="content">
+      <article class="wrap" id="content">Loading…</article>
+      <footer>Published with GitHub Pages · Rendered client-side from Markdown.</footer>
+    </div>
+    <aside class="onthispage" id="onthispage" aria-label="On this page">
+      <h3>On this page</h3>
+      <ul id="minitoc"></ul>
+    </aside>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+    // Theme toggle
+    const themeBtn = document.getElementById('themeBtn');
+    const syncTheme = () => { themeBtn.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙'; };
+    syncTheme();
+    themeBtn.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('eks-theme', dark ? 'dark' : 'light'); } catch(e){}
+      syncTheme();
+      const c = document.getElementById('content');
+      if (c.querySelector('.mermaid')) reRenderMermaid(c, dark);
+    });
+
+    async function reRenderMermaid(container, dark) {
+      container.querySelectorAll('.mermaid').forEach(m => { if (m.dataset.src) { m.innerHTML = m.dataset.src; m.removeAttribute('data-processed'); } });
+      mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
+      try { await mermaid.run({ nodes: container.querySelectorAll('.mermaid') }); } catch(e){}
+    }
+
+    // Progress bar
+    const bar = document.getElementById('progress');
+    const onScroll = () => { const h = document.documentElement; const max = h.scrollHeight - h.clientHeight; bar.style.width = max > 0 ? (h.scrollTop/max*100)+'%' : '0%'; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Load + render markdown
+    const el = document.getElementById('content');
+    try {
+      const md = await (await fetch('eks.md')).text();
+      const blocks = [];
+      let src = md.replace(/```mermaid\n([\s\S]*?)```/g, (_, code) => { const i = blocks.push(code.trim()) - 1; return `@@M_${i}@@`; });
+      marked.setOptions({ gfm: true, breaks: false });
+      let html = marked.parse(src);
+      html = html.replace(/@@M_(\d+)@@/g, (_, i) => `<pre class="mermaid">${blocks[i].replace(/</g,'&lt;')}</pre>`);
+      el.innerHTML = html;
+
+      el.querySelectorAll('.mermaid').forEach(m => m.dataset.src = m.textContent);
+      el.querySelectorAll('pre code').forEach(b => window.hljs && window.hljs.highlightElement(b));
+
+      const dark = document.documentElement.classList.contains('dark');
+      mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
+      try { await mermaid.run({ nodes: el.querySelectorAll('.mermaid') }); } catch(e){}
+
+      // copy buttons
+      el.querySelectorAll('pre > code').forEach(code => {
+        const pre = code.parentElement;
+        if (pre.classList.contains('mermaid')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = 'Copy';
+        btn.addEventListener('click', async () => { try { await navigator.clipboard.writeText(code.innerText); btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy',1400);} catch(e){ btn.textContent='Error'; } });
+        pre.appendChild(btn);
+      });
+
+      // mini-TOC + scroll-spy
+      const list = document.getElementById('minitoc');
+      const heads = [...el.querySelectorAll('h2, h3')];
+      heads.forEach((h,i) => { if (!h.id) h.id = 'h-'+i+'-'+h.textContent.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40); });
+      list.innerHTML = heads.map(h => `<li class="lvl-${h.tagName.toLowerCase()}"><a href="#${h.id}">${h.textContent.replace(/[⭐★]/g,'').trim()}</a></li>`).join('');
+      const links = new Map([...list.querySelectorAll('a')].map(a => [a.getAttribute('href').slice(1), a]));
+      const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) { list.querySelectorAll('a.active').forEach(a=>a.classList.remove('active')); links.get(e.target.id)?.classList.add('active'); } }); }, { rootMargin: '0px 0px -75% 0px' });
+      heads.forEach(h => obs.observe(h));
+
+      onScroll();
+    } catch (e) {
+      el.innerHTML = '<p>Could not load eks.md (' + e.message + ').</p>';
+    }
+  </script>
+</body>
+</html>
