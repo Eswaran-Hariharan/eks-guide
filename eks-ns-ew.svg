@@ -1,114 +1,108 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 820" font-family="'Segoe UI', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 860" font-family="'Segoe UI', Arial, sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3f5f7"/></linearGradient>
-    <marker id="n" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0a8f6f"/></marker>
-    <marker id="s" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ec7211"/></marker>
-    <marker id="e" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4f5fd6"/></marker>
+    <marker id="ig" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#0a8f6f"/></marker>
+    <marker id="eg" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#ec7211"/></marker>
+    <marker id="ew" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#4f5fd6"/></marker>
     <style>
-      .t{font-size:12.5px;font-weight:700;fill:#232f3e}.s{font-size:10px;fill:#5a6b7b}
-      .ic{font-size:18px}.dir{font-size:15px;font-weight:800;letter-spacing:1px}
-      .note{font-size:10px;fill:#697786}.ex{font-size:10px;fill:#33424f}
+      .t{font-size:13px;font-weight:700;fill:#232f3e}.s{font-size:10.5px;fill:#5a6b7b}
+      .ic{font-size:19px}.dir{font-size:14px;font-weight:800;letter-spacing:.8px}
+      .note{font-size:10.5px;fill:#697786}.ex{font-size:10px;fill:#33424f}
     </style>
   </defs>
-  <rect width="1120" height="820" fill="url(#bg)"/>
-  <text x="34" y="42" font-size="22" font-weight="800" fill="#232f3e">EKS Traffic Directions — North-South &amp; East-West</text>
-  <text x="34" y="64" font-size="12" fill="#697786">North-South = in/out of the cluster · East-West = between services inside the cluster</text>
+  <rect width="1080" height="860" fill="url(#bg)"/>
+  <text x="40" y="44" font-size="22" font-weight="800" fill="#232f3e">EKS Traffic Directions — North-South &amp; East-West</text>
+  <text x="40" y="66" font-size="12" fill="#697786">North-South crosses the cluster boundary · East-West stays inside the cluster</text>
 
-  <!-- compass hint -->
-  <g transform="translate(1020,120)" opacity="0.9">
-    <circle r="42" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
-    <text x="0" y="-22" text-anchor="middle" class="s" fill="#0a8f6f">N in</text>
-    <text x="0" y="34" text-anchor="middle" class="s" fill="#ec7211">S out</text>
-    <text x="-30" y="4" text-anchor="middle" class="s" fill="#4f5fd6">W</text>
-    <text x="30" y="4" text-anchor="middle" class="s" fill="#4f5fd6">E</text>
-    <line x1="0" y1="-14" x2="0" y2="14" stroke="#232f3e" stroke-width="1"/>
-    <line x1="-14" y1="0" x2="14" y2="0" stroke="#232f3e" stroke-width="1"/>
-  </g>
-
-  <!-- NORTH: external users -->
-  <g transform="translate(400,96)">
-    <rect width="320" height="70" rx="12" fill="#fff" stroke="#0a8f6f" stroke-width="2"/>
+  <!-- ===== NORTH: external clients ===== -->
+  <g transform="translate(390,92)">
+    <rect width="300" height="66" rx="12" fill="#fff" stroke="#0a8f6f" stroke-width="2"/>
     <text x="16" y="30" class="ic">🌐</text>
-    <text x="46" y="28" class="t">External clients (North)</text>
-    <text x="46" y="45" class="s">Users, mobile, partners, other systems</text>
-    <text x="46" y="60" class="ex">e.g. https://app.example.com  →  ALB  →  Ingress</text>
-  </g>
-  <text x="560" y="196" text-anchor="middle" class="dir" fill="#0a8f6f">⬇ NORTH-SOUTH (ingress in)</text>
-  <text x="560" y="214" text-anchor="middle" class="note">WAF · TLS on ALB · Ingress routing · NetworkPolicy allow-from-ingress</text>
-
-  <!-- CLUSTER box (center) -->
-  <rect x="230" y="236" width="660" height="330" rx="14" fill="#f0fbf8" stroke="#01a88d" stroke-width="2"/>
-  <text x="250" y="262" class="dir" fill="#017a5e">EKS CLUSTER (VPC · private subnets)</text>
-
-  <!-- East-West services -->
-  <g transform="translate(266,286)">
-    <rect width="180" height="86" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
-    <text x="14" y="30" class="ic">▢</text><text x="42" y="26" class="t">frontend svc</text>
-    <text x="14" y="52" class="s">Namespace A</text>
-    <text x="14" y="70" class="ex">calls backend →</text>
-  </g>
-  <g transform="translate(470,286)">
-    <rect width="180" height="86" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
-    <text x="14" y="30" class="ic">▢</text><text x="42" y="26" class="t">backend svc</text>
-    <text x="14" y="52" class="s">Namespace B</text>
-    <text x="14" y="70" class="ex">calls worker/cache →</text>
-  </g>
-  <g transform="translate(674,286)">
-    <rect width="184" height="86" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
-    <text x="14" y="30" class="ic">▢</text><text x="42" y="26" class="t">worker / cache svc</text>
-    <text x="14" y="52" class="s">Namespace B</text>
-    <text x="14" y="70" class="ex">queue / redis</text>
+    <text x="48" y="28" class="t">External clients — NORTH</text>
+    <text x="48" y="45" class="s">Users, mobile, partners, other systems</text>
+    <text x="48" y="59" class="ex">browser → app.example.com → ALB</text>
   </g>
 
-  <!-- E-W arrows -->
-  <line x1="446" y1="329" x2="470" y2="329" stroke="#4f5fd6" stroke-width="2.4" marker-end="url(#e)"/>
-  <line x1="650" y1="329" x2="674" y2="329" stroke="#4f5fd6" stroke-width="2.4" marker-end="url(#e)"/>
-  <line x1="470" y1="349" x2="446" y2="349" stroke="#4f5fd6" stroke-width="1.4" marker-end="url(#e)" opacity="0.5"/>
-  <text x="560" y="404" text-anchor="middle" class="dir" fill="#4f5fd6">⬌ EAST-WEST (service-to-service)</text>
-  <text x="560" y="422" text-anchor="middle" class="note">mTLS (mesh / Cilium) · default-deny NetworkPolicy · service discovery via CoreDNS</text>
+  <!-- North arrow DOWN into cluster (straight, centered) -->
+  <line x1="540" y1="158" x2="540" y2="250" stroke="#0a8f6f" stroke-width="3" marker-end="url(#ig)"/>
+  <text x="556" y="196" class="dir" fill="#0a8f6f">NORTH → SOUTH</text>
+  <text x="556" y="214" class="note">ingress IN</text>
+  <text x="556" y="230" class="note">WAF · TLS · Ingress · NetworkPolicy</text>
 
-  <!-- Ingress entry inside cluster -->
-  <g transform="translate(266,446)">
-    <rect width="200" height="52" rx="10" fill="#fff" stroke="#01a88d" stroke-width="1.6"/>
-    <text x="12" y="32" class="ic">🚪</text><text x="42" y="24" class="t">Ingress / Gateway</text><text x="42" y="39" class="s">entry point (from North)</text>
+  <!-- ===== CLUSTER (center) ===== -->
+  <rect x="180" y="252" width="720" height="300" rx="14" fill="#f0fbf8" stroke="#01a88d" stroke-width="2"/>
+  <text x="200" y="278" class="dir" fill="#017a5e">EKS CLUSTER · VPC private subnets</text>
+
+  <!-- Ingress gateway (top-center entry) -->
+  <g transform="translate(440,292)">
+    <rect width="200" height="48" rx="10" fill="#fff" stroke="#01a88d" stroke-width="1.8"/>
+    <text x="12" y="30" class="ic">🚪</text><text x="44" y="23" class="t">Ingress / Gateway</text><text x="44" y="38" class="s">entry point from North</text>
   </g>
-  <!-- Egress control inside cluster -->
-  <g transform="translate(490,446)">
-    <rect width="200" height="52" rx="10" fill="#fff" stroke="#ec7211" stroke-width="1.6"/>
-    <text x="12" y="32" class="ic">🧭</text><text x="42" y="24" class="t">Egress control</text><text x="42" y="39" class="s">default-deny + allow-list</text>
+  <!-- arrow ingress -> frontend -->
+  <line x1="440" y1="316" x2="330" y2="316" stroke="#0a8f6f" stroke-width="2.4" marker-end="url(#ig)"/>
+
+  <!-- East-West row: 3 services -->
+  <g transform="translate(200,372)">
+    <rect width="160" height="76" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
+    <text x="12" y="28" class="ic">▢</text><text x="42" y="25" class="t">frontend</text>
+    <text x="12" y="48" class="s">Namespace A</text><text x="12" y="65" class="ex">calls backend</text>
   </g>
-  <text x="266" y="536" class="note">North-South enters via Ingress; South (egress) leaves via egress control → NAT / VPC Endpoints.</text>
-
-  <!-- Ingress -> frontend -->
-  <path d="M366,446 C366,420 356,372 356,372" fill="none" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#n)"/>
-
-  <!-- SOUTH: egress targets -->
-  <text x="560" y="606" text-anchor="middle" class="dir" fill="#ec7211">⬇ NORTH-SOUTH (egress out)</text>
-  <text x="560" y="624" text-anchor="middle" class="note">Default-deny egress · FQDN allow-list · VPC Endpoints for AWS · NAT for internet</text>
-
-  <g transform="translate(250,646)">
-    <rect width="250" height="66" rx="12" fill="#fff" stroke="#ec7211" stroke-width="2"/>
-    <text x="16" y="30" class="ic">☁</text><text x="46" y="26" class="t">AWS services (South, private)</text>
-    <text x="46" y="43" class="s">S3, ECR, DynamoDB, Secrets</text>
-    <text x="46" y="58" class="ex">via VPC Endpoints — off the internet</text>
+  <g transform="translate(460,372)">
+    <rect width="160" height="76" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
+    <text x="12" y="28" class="ic">▢</text><text x="42" y="25" class="t">backend</text>
+    <text x="12" y="48" class="s">Namespace B</text><text x="12" y="65" class="ex">calls cache/worker</text>
   </g>
-  <g transform="translate(620,646)">
-    <rect width="250" height="66" rx="12" fill="#fff" stroke="#ec7211" stroke-width="2"/>
-    <text x="16" y="30" class="ic">🌍</text><text x="46" y="26" class="t">Internet (South)</text>
-    <text x="46" y="43" class="s">SaaS APIs, partner endpoints</text>
-    <text x="46" y="58" class="ex">via NAT — outbound only, allow-listed</text>
+  <g transform="translate(720,372)">
+    <rect width="160" height="76" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.8"/>
+    <text x="12" y="28" class="ic">▢</text><text x="42" y="25" class="t">cache / worker</text>
+    <text x="12" y="48" class="s">Namespace B</text><text x="12" y="65" class="ex">redis / queue</text>
   </g>
 
-  <!-- egress arrows -->
-  <path d="M540,498 C480,560 400,600 375,646" fill="none" stroke="#ec7211" stroke-width="2.2" marker-end="url(#s)"/>
-  <path d="M640,498 C700,560 730,600 745,646" fill="none" stroke="#ec7211" stroke-width="2.2" marker-end="url(#s)"/>
-  <!-- north entry from external users to ingress -->
-  <path d="M520,166 C420,200 366,410 366,446" fill="none" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#n)"/>
+  <!-- East-West straight horizontal arrows between service boxes -->
+  <line x1="360" y1="410" x2="460" y2="410" stroke="#4f5fd6" stroke-width="3" marker-end="url(#ew)"/>
+  <line x1="620" y1="410" x2="720" y2="410" stroke="#4f5fd6" stroke-width="3" marker-end="url(#ew)"/>
+  <text x="410" y="400" text-anchor="middle" class="note" fill="#4f5fd6">mTLS</text>
+  <text x="670" y="400" text-anchor="middle" class="note" fill="#4f5fd6">mTLS</text>
+  <text x="540" y="474" text-anchor="middle" class="dir" fill="#4f5fd6">EAST ↔ WEST (service-to-service)</text>
+  <text x="540" y="492" text-anchor="middle" class="note">default-deny NetworkPolicy · CoreDNS discovery</text>
+
+  <!-- Egress control (bottom-center exit) -->
+  <g transform="translate(440,504)">
+    <rect width="200" height="40" rx="10" fill="#fff" stroke="#ec7211" stroke-width="1.8"/>
+    <text x="12" y="26" class="ic">🧭</text><text x="44" y="19" class="t">Egress control</text><text x="44" y="33" class="s">default-deny + allow-list</text>
+  </g>
+
+  <!-- South arrows DOWN out of cluster (two straight, to the two targets) -->
+  <line x1="360" y1="552" x2="360" y2="640" stroke="#ec7211" stroke-width="3" marker-end="url(#eg)"/>
+  <line x1="720" y1="552" x2="720" y2="640" stroke="#ec7211" stroke-width="3" marker-end="url(#eg)"/>
+  <text x="556" y="590" class="dir" fill="#ec7211">SOUTH</text>
+  <text x="556" y="608" class="note">egress OUT</text>
+
+  <!-- ===== SOUTH: egress targets ===== -->
+  <g transform="translate(230,642)">
+    <rect width="260" height="72" rx="12" fill="#fff" stroke="#ec7211" stroke-width="2"/>
+    <text x="16" y="32" class="ic">☁</text>
+    <text x="48" y="27" class="t">AWS services (private)</text>
+    <text x="48" y="44" class="s">S3, ECR, DynamoDB, Secrets, KMS</text>
+    <text x="48" y="60" class="ex">via VPC Endpoints — off the internet</text>
+  </g>
+  <g transform="translate(590,642)">
+    <rect width="260" height="72" rx="12" fill="#fff" stroke="#ec7211" stroke-width="2"/>
+    <text x="16" y="32" class="ic">🌍</text>
+    <text x="48" y="27" class="t">Internet</text>
+    <text x="48" y="44" class="s">SaaS APIs, partner endpoints</text>
+    <text x="48" y="60" class="ex">via NAT — outbound only, allow-listed</text>
+  </g>
 
   <!-- Legend -->
-  <g transform="translate(34,780)">
-    <line x1="0" y1="6" x2="30" y2="6" stroke="#0a8f6f" stroke-width="2.4"/><text x="38" y="10" class="note">North → South ingress (into cluster)</text>
-    <line x1="320" y1="6" x2="350" y2="6" stroke="#ec7211" stroke-width="2.4"/><text x="358" y="10" class="note">North → South egress (out of cluster)</text>
-    <line x1="650" y1="6" x2="680" y2="6" stroke="#4f5fd6" stroke-width="2.4"/><text x="688" y="10" class="note">East ↔ West (service-to-service)</text>
+  <g transform="translate(40,772)">
+    <rect width="1000" height="58" rx="10" fill="#fff" stroke="#e6e9ec" stroke-width="1"/>
+    <line x1="24" y1="22" x2="60" y2="22" stroke="#0a8f6f" stroke-width="3" marker-end="url(#ig)"/>
+    <text x="70" y="26" class="note">North → South ingress (into cluster)</text>
+    <line x1="360" y1="22" x2="396" y2="22" stroke="#ec7211" stroke-width="3" marker-end="url(#eg)"/>
+    <text x="406" y="26" class="note">South egress (out of cluster)</text>
+    <line x1="680" y1="22" x2="716" y2="22" stroke="#4f5fd6" stroke-width="3" marker-end="url(#ew)"/>
+    <text x="726" y="26" class="note">East ↔ West (service-to-service)</text>
+    <text x="24" y="46" class="note">Straight vertical arrows = crossing the cluster boundary (N-S). Straight horizontal arrows = staying inside (E-W).</text>
   </g>
 </svg>
