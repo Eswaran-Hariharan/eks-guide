@@ -188,7 +188,69 @@ flowchart TD
 
 ---
 
-## 7. Scalability — HPA, VPA, KEDA & Karpenter
+## 7. Ingress & Egress — secured traffic flow
+
+Two directions of traffic matter, and each needs its own security story:
+- **Ingress** — traffic coming *into* the cluster from outside (users, partners).
+- **Egress** — traffic leaving the cluster to *external* destinations (SaaS APIs, AWS services).
+- **East-west** — internal service-to-service traffic *between* Pods.
+
+![EKS Ingress & Egress — Secured Traffic Flow](eks-traffic-flow.svg)
+
+*🔒 marks where a security control is enforced. Green = ingress, orange = egress, blue = internal east-west.*
+
+### 7.1 Ingress — external → Pod (defense in depth)
+
+Every hop adds a control, so a bad request is filtered as early as possible:
+
+| Hop | Component | Security enforced |
+|-----|-----------|-------------------|
+| 1 | **AWS WAF + Shield** | L7 filtering (SQLi/XSS, rate limits), DDoS protection |
+| 2 | **Route 53 + ACM** | DNS resolution; **TLS certificate** issuance |
+| 3 | **ALB / NLB** (public subnet) | **TLS termination (HTTPS only)**, WAF association, health checks |
+| 4 | **Ingress / Gateway API** | Host/path routing via the AWS Load Balancer Controller |
+| 5 | **Service (ClusterIP)** | Stable virtual IP, load-balances to healthy Pods |
+| 6 | **Pod** (private subnet) | **NetworkPolicy** (allow only from Ingress), per-Pod SG, Pod Security Standards |
+
+The key idea: **only load balancers live in public subnets; Pods live in private subnets** and are never directly reachable from the internet.
+
+### 7.2 East-west — service-to-service (internal view)
+
+Inside the cluster, traffic between Pods should be **zero-trust**, not open by default:
+
+```mermaid
+flowchart LR
+    A[Pod - frontend<br/>Namespace A] -->|mTLS| B[Pod - backend<br/>Namespace B]
+    B -->|mTLS| C[Pod - worker<br/>Namespace B]
+    NP[NetworkPolicy:<br/>default-deny + explicit allow] -.enforces.-> A
+    NP -.enforces.-> B
+    MESH[Service mesh / Cilium:<br/>identity-based mTLS] -.encrypts.-> A
+```
+
+- **NetworkPolicies** — start with **default-deny**, then allow only the specific Pod-to-Pod paths you need (e.g. frontend → backend, nothing else).
+- **mTLS** — a service mesh (Istio/App Mesh) or **Cilium** gives mutual TLS + identity between services, so traffic is encrypted and authenticated even inside the VPC.
+- **IRSA per ServiceAccount** — each workload gets only the AWS permissions it needs.
+
+### 7.3 Egress — Pod → external (controlled, not wide-open)
+
+By default a Pod can reach anything the NAT allows. Lock this down:
+
+| Path | How | Security enforced |
+|------|-----|-------------------|
+| **To AWS services** (S3, ECR, STS, DynamoDB, CloudWatch) | **VPC Endpoints / PrivateLink** | Traffic **stays on the AWS network** — never touches the internet |
+| **To the internet** (SaaS, partner APIs) | **NAT Gateway** in public subnet | Outbound only; **no inbound** from the internet |
+| **Egress filtering** | **Egress NetworkPolicy / egress proxy** | **Default-deny egress** + **FQDN allow-list** (only approved domains) |
+
+**Best practices:**
+- Prefer **VPC Endpoints** for AWS services — cheaper, faster, and private (no NAT, no internet path).
+- Apply **default-deny egress** and allow-list only the external FQDNs a workload legitimately needs — this contains data-exfiltration and blast radius if a Pod is compromised.
+- Route internet-bound egress through a **NAT Gateway** (or an egress proxy for inspection/logging).
+
+> **Rule of thumb:** Ingress is filtered top-down (WAF → TLS → policy); egress is **deny-by-default** with explicit allow-lists; AWS-bound traffic goes private via **VPC Endpoints**; east-west is **zero-trust with mTLS**.
+
+---
+
+## 8. Scalability — HPA, VPA, KEDA & Karpenter
 
 Scaling in Kubernetes happens on **two axes**: scaling **Pods** (more/bigger replicas) and scaling **Nodes** (more capacity to place them). Use the right tool for each.
 
@@ -227,7 +289,7 @@ A real pipeline usually combines them: **KEDA or HPA** decides *how many Pods*, 
 
 ---
 
-## 8. Cluster upgrades
+## 9. Cluster upgrades
 
 EKS releases a new Kubernetes version regularly, and each version is supported for a limited window — so upgrades are a recurring, planned activity, not a one-off.
 
@@ -254,7 +316,7 @@ flowchart LR
 
 ---
 
-## 9. Deployment strategies
+## 10. Deployment strategies
 
 How you ship a new version of an app into the cluster determines your blast radius if something's wrong.
 
@@ -287,11 +349,11 @@ flowchart LR
 
 ---
 
-## 10. Security — defense in depth
+## 11. Security — defense in depth
 
 EKS security spans identity, network, secrets, and the nodes themselves.
 
-### 6.1 Identity: how Pods get AWS permissions
+### 11.1 Identity: how Pods get AWS permissions
 
 Never bake AWS access keys into containers. Give a Pod an IAM role instead. Two mechanisms:
 
@@ -305,7 +367,7 @@ flowchart LR
     ROLE -->|scoped, temporary creds| AWSAPI[AWS APIs<br/>S3, DynamoDB, etc.]
 ```
 
-### 6.2 Layered controls
+### 11.2 Layered controls
 
 | Layer | Control | What it does |
 |-------|---------|-------------|
@@ -317,7 +379,7 @@ flowchart LR
 | **Images** | **Amazon ECR** + image scanning | Signed, scanned images from a private registry |
 | **Runtime** | **GuardDuty EKS Protection**, Pod Security Standards | Threat detection + hardening baselines |
 
-### 6.3 Encryption
+### 11.3 Encryption
 
 - **Secrets envelope encryption** — encrypt Kubernetes Secrets in `etcd` with a **KMS** key.
 - **In transit** — TLS to the API server; mTLS between services if you add a service mesh.
@@ -325,7 +387,7 @@ flowchart LR
 
 ---
 
-## 11. Storage
+## 12. Storage
 
 Pods are ephemeral; data needs somewhere durable to live.
 
@@ -339,15 +401,15 @@ Persistent storage is requested with a **PersistentVolumeClaim (PVC)**; the CSI 
 
 ---
 
-## 12. Disaster Recovery (DR)
+## 13. Disaster Recovery (DR)
 
 DR is about surviving the loss of a zone — or an entire region.
 
-### 12.1 Multi-AZ (baseline, always do this)
+### 13.1 Multi-AZ (baseline, always do this)
 
 Spread nodes across **3 AZs** and run multiple replicas. If one AZ fails, the scheduler reschedules Pods onto healthy AZs. The EKS control plane is already multi-AZ by default.
 
-### 12.2 Multi-Region (for serious RTO/RPO targets)
+### 13.2 Multi-Region (for serious RTO/RPO targets)
 
 ```mermaid
 flowchart LR
@@ -374,7 +436,7 @@ Key ingredients: **GitOps** (ArgoCD/Flux) so the whole cluster is re-creatable f
 
 ---
 
-## 13. Backup — Velero
+## 14. Backup — Velero
 
 Multi-AZ protects against hardware failure; **backup** protects against *mistakes* (a bad deploy, an accidental `delete`) and enables migration.
 
@@ -394,11 +456,11 @@ flowchart LR
 
 ---
 
-## 14. Observability with OpenTelemetry (OTel)
+## 15. Observability with OpenTelemetry (OTel)
 
 You can't operate what you can't see. Modern EKS observability standardizes on **OpenTelemetry** — a vendor-neutral standard for the three signals: **metrics, logs, and traces**.
 
-### 14.1 The pipeline
+### 15.1 The pipeline
 
 ```mermaid
 flowchart LR
@@ -415,7 +477,7 @@ flowchart LR
 - **Logs** → **CloudWatch Logs** (via Fluent Bit / OTel).
 - **Visualize** → **Amazon Managed Grafana** or CloudWatch dashboards.
 
-### 14.2 Why OTel instead of proprietary agents
+### 15.2 Why OTel instead of proprietary agents
 
 | | Proprietary agent | OpenTelemetry |
 |---|---|---|
@@ -426,11 +488,12 @@ flowchart LR
 
 ---
 
-## 15. Putting it all together — production checklist
+## 16. Putting it all together — production checklist
 
 - **Cluster:** EKS control plane (managed, multi-AZ); GitOps (ArgoCD/Flux) as source of truth.
 - **Compute:** Managed Node Groups for baseline + **Karpenter** for elastic, right-sized, Spot-friendly scaling.
 - **Networking:** VPC across 3 AZs, public/private subnets, IGW + NAT, **VPC CNI** (add **Calico** for policy or **Cilium** for eBPF/L7), **AWS Load Balancer Controller** (ALB/NLB), NetworkPolicies.
+- **Traffic:** ingress via WAF/Shield → TLS on ALB → Ingress → Pod; **default-deny egress** + FQDN allow-list; **VPC Endpoints** for private AWS access; east-west **mTLS**.
 - **Scaling:** **HPA** for request-driven, **KEDA** for event-driven + scale-to-zero, **VPA** for right-sizing, **Karpenter** for nodes.
 - **Security:** IRSA / Pod Identity, RBAC, per-Pod security groups, Secrets Manager + KMS, ECR image scanning, GuardDuty EKS Protection.
 - **Storage:** EBS/EFS CSI drivers, PVCs, KMS-encrypted volumes.

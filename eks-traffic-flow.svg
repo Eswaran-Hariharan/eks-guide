@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 860" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3f5f7"/></linearGradient>
+    <marker id="in" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0a8f6f"/></marker>
+    <marker id="eg" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ec7211"/></marker>
+    <marker id="ew" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4f5fd6"/></marker>
+    <style>
+      .t{font-size:12px;font-weight:700;fill:#232f3e}.s{font-size:9.5px;fill:#5a6b7b}
+      .ic{font-size:17px}.lbl{font-size:12px;font-weight:800;letter-spacing:.4px}
+      .note{font-size:10px;fill:#697786}.sec{font-size:9.5px;font-weight:700;fill:#0a8f6f}
+      .lock{font-size:11px}
+    </style>
+  </defs>
+  <rect width="1280" height="860" fill="url(#bg)"/>
+  <text x="34" y="42" font-size="22" font-weight="800" fill="#232f3e">EKS Ingress &amp; Egress — Secured Traffic Flow</text>
+  <text x="34" y="64" font-size="12" fill="#697786">🔒 = security control enforced at this hop · green = ingress (in) · orange = egress (out) · blue = internal east-west</text>
+
+  <!-- ===== EXTERNAL (left) ===== -->
+  <rect x="26" y="86" width="250" height="720" rx="12" fill="#f7f9fb" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="42" y="110" class="lbl" fill="#556">EXTERNAL / INTERNET</text>
+  <g transform="translate(60,128)"><rect width="180" height="52" rx="10" fill="#fff" stroke="#232f3e" stroke-width="1.5"/><text x="14" y="32" class="ic">🌐</text><text x="44" y="24" class="t">End users / clients</text><text x="44" y="40" class="s">Browsers, mobile, partners</text></g>
+
+  <!-- Edge security stack -->
+  <g transform="translate(60,206)"><rect width="180" height="50" rx="10" fill="#fff" stroke="#dd344c" stroke-width="2"/><rect width="30" height="50" rx="10" fill="#dd344c"/><text x="6" y="32" class="ic" fill="#fff">🛡</text><text x="40" y="22" class="t">AWS WAF + Shield</text><text x="40" y="38" class="s">L7 filtering, DDoS</text></g>
+  <g transform="translate(60,266)"><rect width="180" height="50" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="2"/><rect width="30" height="50" rx="10" fill="#8c4fff"/><text x="6" y="32" class="ic" fill="#fff">◐</text><text x="40" y="22" class="t">Route 53 + ACM</text><text x="40" y="38" class="s">DNS · TLS certs</text></g>
+
+  <!-- external egress targets -->
+  <text x="42" y="470" class="lbl" fill="#a35a17">EGRESS TARGETS</text>
+  <g transform="translate(60,486)"><rect width="180" height="46" rx="10" fill="#fff" stroke="#7aa116" stroke-width="1.6"/><text x="12" y="30" class="ic">📦</text><text x="42" y="22" class="t">Package repos / APIs</text><text x="42" y="37" class="s">3rd-party SaaS, updates</text></g>
+  <g transform="translate(60,542)"><rect width="180" height="46" rx="10" fill="#fff" stroke="#7aa116" stroke-width="1.6"/><text x="12" y="30" class="ic">🤝</text><text x="42" y="22" class="t">Partner endpoints</text><text x="42" y="37" class="s">allow-listed FQDNs</text></g>
+
+  <!-- ===== AWS / VPC (center) ===== -->
+  <rect x="300" y="86" width="700" height="720" rx="12" fill="none" stroke="#232f3e" stroke-width="2"/>
+  <rect x="314" y="76" width="110" height="24" rx="6" fill="#232f3e"/><text x="326" y="93" fill="#fff" font-size="11" font-weight="700">AWS Cloud / VPC</text>
+
+  <!-- Public subnet -->
+  <rect x="316" y="112" width="668" height="150" rx="10" fill="#eef7ff" stroke="#4f5fd6" stroke-width="1.3"/>
+  <text x="330" y="132" class="lbl" fill="#3a49b8">PUBLIC SUBNETS (per AZ)</text>
+  <g transform="translate(330,142)"><rect width="200" height="60" rx="10" fill="#fff" stroke="#e0004d" stroke-width="2"/><rect width="32" height="60" rx="10" fill="#e0004d"/><text x="7" y="37" class="ic" fill="#fff">⇄</text><text x="42" y="26" class="t">ALB / NLB</text><text x="42" y="41" class="s">TLS termination (ACM)</text><text x="42" y="54" class="sec">🔒 HTTPS only · WAF assoc.</text></g>
+  <g transform="translate(560,142)"><rect width="200" height="60" rx="10" fill="#fff" stroke="#7aa116" stroke-width="2"/><rect width="32" height="60" rx="10" fill="#7aa116"/><text x="7" y="37" class="ic" fill="#fff">⇥</text><text x="42" y="26" class="t">NAT Gateway</text><text x="42" y="41" class="s">Outbound egress only</text><text x="42" y="54" class="sec">🔒 no inbound from net</text></g>
+  <g transform="translate(790,142)"><rect width="180" height="60" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="2"/><rect width="32" height="60" rx="10" fill="#8c4fff"/><text x="7" y="37" class="ic" fill="#fff">⛩</text><text x="42" y="26" class="t">Internet GW</text><text x="42" y="41" class="s">VPC edge</text></g>
+
+  <!-- Private subnet / cluster -->
+  <rect x="316" y="278" width="668" height="360" rx="10" fill="#f0fbf8" stroke="#01a88d" stroke-width="1.4"/>
+  <text x="330" y="298" class="lbl" fill="#017a5e">PRIVATE SUBNETS · EKS CLUSTER</text>
+
+  <!-- Ingress controller -->
+  <g transform="translate(330,308)"><rect width="220" height="56" rx="10" fill="#fff" stroke="#01a88d" stroke-width="2"/><text x="12" y="34" class="ic">🚪</text><text x="42" y="26" class="t">Ingress / Gateway API</text><text x="42" y="40" class="s">LB Controller · host/path routing</text></g>
+  <!-- Service -->
+  <g transform="translate(576,308)"><rect width="180" height="56" rx="10" fill="#fff" stroke="#4f5fd6" stroke-width="1.6"/><text x="12" y="34" class="ic">🔗</text><text x="42" y="26" class="t">Service (ClusterIP)</text><text x="42" y="40" class="s">stable vIP + LB</text></g>
+
+  <!-- Namespace A pods -->
+  <rect x="330" y="384" width="300" height="150" rx="10" fill="#fff" stroke="#232f3e" stroke-width="1.2"/>
+  <text x="342" y="404" class="t" fill="#017a5e">Namespace A (frontend)</text>
+  <g transform="translate(342,414)"><rect width="120" height="50" rx="8" fill="#fff5ec" stroke="#ec7211" stroke-width="1.4"/><text x="10" y="30" class="ic">▢</text><text x="34" y="24" class="t">Pod</text><text x="34" y="38" class="s">web / api</text></g>
+  <g transform="translate(474,414)"><rect width="140" height="50" rx="8" fill="#fff5ec" stroke="#ec7211" stroke-width="1.4"/><text x="10" y="30" class="ic">▢</text><text x="34" y="24" class="t">Pod</text><text x="34" y="38" class="s">+ sidecar (mTLS)</text></g>
+  <text x="342" y="486" class="sec">🔒 NetworkPolicy: allow only from Ingress</text>
+  <text x="342" y="502" class="sec">🔒 per-Pod Security Group</text>
+  <text x="342" y="518" class="sec">🔒 Pod Security Standards</text>
+
+  <!-- Namespace B pods -->
+  <rect x="646" y="384" width="322" height="150" rx="10" fill="#fff" stroke="#232f3e" stroke-width="1.2"/>
+  <text x="658" y="404" class="t" fill="#017a5e">Namespace B (backend)</text>
+  <g transform="translate(658,414)"><rect width="140" height="50" rx="8" fill="#eef7f4" stroke="#01a88d" stroke-width="1.4"/><text x="10" y="30" class="ic">▢</text><text x="34" y="24" class="t">Pod</text><text x="34" y="38" class="s">service / worker</text></g>
+  <g transform="translate(810,414)"><rect width="146" height="50" rx="8" fill="#eef7f4" stroke="#01a88d" stroke-width="1.4"/><text x="10" y="30" class="ic">▢</text><text x="34" y="24" class="t">Pod</text><text x="34" y="38" class="s">+ mesh proxy</text></g>
+  <text x="658" y="486" class="sec">🔒 East-west mTLS (mesh / Cilium)</text>
+  <text x="658" y="502" class="sec">🔒 NetworkPolicy: allow only from A</text>
+  <text x="658" y="518" class="sec">🔒 IRSA scoped role per SA</text>
+
+  <!-- Egress control + VPC endpoints -->
+  <rect x="316" y="652" width="668" height="140" rx="10" fill="#fff5ec" stroke="#ec7211" stroke-width="1.4"/>
+  <text x="330" y="672" class="lbl" fill="#a35a17">EGRESS CONTROL</text>
+  <g transform="translate(330,682)"><rect width="200" height="52" rx="10" fill="#fff" stroke="#ec7211" stroke-width="1.6"/><text x="12" y="32" class="ic">🧭</text><text x="42" y="24" class="t">Egress policy / proxy</text><text x="42" y="39" class="s">FQDN allow-list, DNS policy</text></g>
+  <g transform="translate(546,682)"><rect width="210" height="52" rx="10" fill="#fff" stroke="#8c4fff" stroke-width="1.6"/><text x="12" y="32" class="ic">🔌</text><text x="42" y="24" class="t">VPC Endpoints / PrivateLink</text><text x="42" y="39" class="s">S3, ECR, STS — stay off internet</text></g>
+  <text x="330" y="760" class="sec">🔒 Default-deny egress + explicit allow-list · 🔒 private AWS access via endpoints (no NAT to internet)</text>
+
+  <!-- ===== AWS services (right) ===== -->
+  <rect x="1024" y="86" width="230" height="720" rx="12" fill="#fbfaf4" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="1040" y="110" class="lbl" fill="#556">AWS SERVICES (private)</text>
+  <g transform="translate(1044,128)"><rect width="190" height="48" rx="10" fill="#fff" stroke="#ec7211" stroke-width="1.6"/><text x="12" y="31" class="ic">▤</text><text x="42" y="22" class="t">ECR</text><text x="42" y="37" class="s">images</text></g>
+  <g transform="translate(1044,186)"><rect width="190" height="48" rx="10" fill="#fff" stroke="#7aa116" stroke-width="1.6"/><text x="12" y="31" class="ic">◲</text><text x="42" y="22" class="t">S3</text><text x="42" y="37" class="s">objects</text></g>
+  <g transform="translate(1044,244)"><rect width="190" height="48" rx="10" fill="#fff" stroke="#dd344c" stroke-width="1.6"/><text x="12" y="31" class="ic">🔐</text><text x="42" y="22" class="t">Secrets Mgr · KMS</text><text x="42" y="37" class="s">secrets</text></g>
+  <g transform="translate(1044,302)"><rect width="190" height="48" rx="10" fill="#fff" stroke="#3334b9" stroke-width="1.6"/><text x="12" y="31" class="ic">▦</text><text x="42" y="22" class="t">DynamoDB / RDS</text><text x="42" y="37" class="s">data</text></g>
+  <g transform="translate(1044,360)"><rect width="190" height="48" rx="10" fill="#fff" stroke="#c94f6d" stroke-width="1.6"/><text x="12" y="31" class="ic">◔</text><text x="42" y="22" class="t">CloudWatch</text><text x="42" y="37" class="s">logs/metrics</text></g>
+  <text x="1040" y="440" class="note">Reached privately via</text><text x="1040" y="455" class="note">VPC Endpoints — traffic</text><text x="1040" y="470" class="note">never touches the internet.</text>
+
+  <!-- ===== FLOW ARROWS ===== -->
+  <!-- ingress: users -> WAF -> R53 -> ALB -> Ingress -> Service -> Pod -->
+  <line x1="150" y1="180" x2="150" y2="206" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <line x1="150" y1="256" x2="150" y2="266" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <path d="M240,291 C280,291 300,172 330,172" fill="none" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <path d="M430,202 C430,240 440,308 440,308" fill="none" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <line x1="550" y1="336" x2="574" y2="336" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <path d="M640,340 C650,360 500,384 460,414" fill="none" stroke="#0a8f6f" stroke-width="2.2" marker-end="url(#in)"/>
+  <text x="250" y="166" class="sec">INGRESS 🔒</text>
+
+  <!-- east-west: A -> B -->
+  <path d="M614,439 C630,439 640,439 656,439" fill="none" stroke="#4f5fd6" stroke-width="2.2" marker-end="url(#ew)"/>
+  <text x="600" y="378" class="note" fill="#4f5fd6">east-west mTLS</text>
+
+  <!-- egress: Pod -> egress control -> NAT -> IGW -> targets -->
+  <path d="M430,464 C430,560 430,640 430,682" fill="none" stroke="#ec7211" stroke-width="2.2" marker-end="url(#eg)"/>
+  <path d="M530,700 C560,700 620,210 660,202" fill="none" stroke="#ec7211" stroke-width="1.8" marker-end="url(#eg)"/>
+  <path d="M660,172 C700,172 720,291 276,291" fill="none" stroke="#ec7211" stroke-width="1.8" marker-end="url(#eg)"/>
+  <text x="300" y="600" class="sec" fill="#a35a17">EGRESS 🔒</text>
+
+  <!-- egress to AWS via endpoints -->
+  <path d="M756,708 C900,708 1000,300 1044,300" fill="none" stroke="#ec7211" stroke-width="1.8" marker-end="url(#eg)"/>
+  <path d="M756,700 C860,700 980,150 1044,150" fill="none" stroke="#ec7211" stroke-width="1.8" marker-end="url(#eg)"/>
+
+  <!-- Legend -->
+  <g transform="translate(34,822)">
+    <line x1="0" y1="6" x2="30" y2="6" stroke="#0a8f6f" stroke-width="2.2"/><text x="38" y="10" class="note">Ingress (external → Pod)</text>
+    <line x1="220" y1="6" x2="250" y2="6" stroke="#ec7211" stroke-width="2.2"/><text x="258" y="10" class="note">Egress (Pod → external / AWS)</text>
+    <line x1="470" y1="6" x2="500" y2="6" stroke="#4f5fd6" stroke-width="2.2"/><text x="508" y="10" class="note">Internal east-west (mTLS)</text>
+    <text x="720" y="10" class="note">🔒 Security control enforced at that hop</text>
+  </g>
+</svg>
