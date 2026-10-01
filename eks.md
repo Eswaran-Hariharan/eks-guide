@@ -404,7 +404,107 @@ flowchart LR
 
 ---
 
-## 12. Storage
+## 12. Multi-Tenancy — many tenants on shared EKS
+
+Multi-tenancy is running **multiple tenants** (teams, products, or customers) on shared EKS infrastructure while keeping each tenant **isolated** — in data, network, compute, identity, and cost. The core question is *how much isolation each tenant needs*, which places you on a spectrum.
+
+![EKS multi-tenancy isolation](eks-multitenancy.svg)
+
+### 12.1 Soft vs hard multi-tenancy
+
+| | **Soft** (shared cluster) | **Hard** (cluster/account per tenant) |
+|---|---|---|
+| **Boundary** | Namespace per tenant | Separate EKS cluster, often separate AWS account |
+| **Isolation** | Logical (K8s + policy) | Physical / account-level |
+| **Cost & ops** | Low — shared control plane, dense packing | High — a control plane + ops per tenant |
+| **Blast radius** | Larger (shared components) | Minimal (fully separate) |
+| **Best for** | Trusted internal teams, cost efficiency | Untrusted/external tenants, strict compliance, strong SLAs |
+
+Most organizations start **soft** and move specific high-risk tenants to **hard** isolation as needed.
+
+### 12.2 Isolation layers (soft multi-tenancy)
+
+Isolate at **every** layer — one control alone is not enough:
+
+| Layer | Control | What it does |
+|-------|---------|--------------|
+| **Namespace** | One **namespace per tenant** | The basic unit of logical separation |
+| **Access** | **RBAC** (tenant-scoped roles/role-bindings) | Each tenant can only touch its own namespace |
+| **AWS identity** | **IRSA / EKS Pod Identity** per tenant | Each tenant's pods get only their own IAM role |
+| **Resources** | **ResourceQuota + LimitRange** | Caps CPU/memory/objects → stops a noisy neighbor |
+| **Network** | **NetworkPolicy** (default-deny) | Pods can't cross tenant boundaries unless allowed |
+| **Compute** | **Dedicated node groups** (taints/tolerations) or **Fargate profiles** | Keeps tenants off shared nodes when needed |
+| **Policy** | **Kyverno / OPA Gatekeeper** + **Pod Security Standards** | Enforce rules (no privileged pods, required labels, image sources) |
+| **Cost** | **Labels/tags per tenant** + tools like Kubecost | Attribute spend back to each tenant (showback/chargeback) |
+
+### 12.3 Namespace-per-tenant essentials
+
+```yaml
+# Resource quota — cap what tenant-a can consume
+apiVersion: v1
+kind: ResourceQuota
+metadata: { name: tenant-a-quota, namespace: tenant-a }
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    pods: "50"
+---
+# Default-deny all ingress in the tenant namespace (then allow only what's needed)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny, namespace: tenant-a }
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress"]
+---
+# RBAC — tenant-a admins manage only their namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: tenant-a-admins, namespace: tenant-a }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: admin }
+subjects:
+  - { kind: Group, name: "tenant-a-team", apiGroup: rbac.authorization.k8s.io }
+```
+
+Give each tenant a **ServiceAccount mapped to its own IAM role** (IRSA/Pod Identity) so one tenant can never assume another's AWS permissions.
+
+### 12.4 Dedicated compute when logical isolation isn't enough
+
+```yaml
+# Taint a tenant's nodes so only their pods land there
+#   kubectl taint nodes -l tenant=a tenant=a:NoSchedule
+spec:
+  tolerations:
+    - { key: "tenant", operator: "Equal", value: "a", effect: "NoSchedule" }
+  nodeSelector:
+    tenant: "a"
+```
+
+Options, from lighter to stronger: **taints/tolerations + nodeSelector** → **separate managed node groups per tenant** → **Fargate profile per tenant** (pod-level VM isolation) → **separate cluster/account** (hard).
+
+### 12.5 Managing a fleet (hard multi-tenancy)
+
+When each tenant gets its own cluster, manage them as a fleet:
+- **GitOps (Argo CD / Flux)** to reconcile every cluster from Git.
+- **Terraform / EKS Blueprints / ACK** to provision clusters consistently.
+- **Karpenter** for per-cluster right-sized autoscaling.
+- Centralized **observability** with per-tenant/per-cluster labels.
+
+### 12.6 Best practices
+
+- **Isolate at every layer** — namespace + RBAC + NetworkPolicy + quotas + IRSA, together.
+- **Default-deny** network and least-privilege IAM per tenant.
+- **Always set ResourceQuota + LimitRange** so no tenant can starve others (noisy-neighbor).
+- **Enforce with policy** (Kyverno/OPA + Pod Security Standards), don't rely on good behavior.
+- **Attribute cost** via consistent tenant labels/tags from day one.
+- **Right-size the model per tenant:** trusted internal → soft; regulated/untrusted/strict-SLA → hard.
+
+> **Rule of thumb:** shared cluster with strong namespace isolation for most tenants; a **separate cluster or AWS account** for anything that is untrusted, regulated, or needs a hard SLA.
+
+---
+
+## 13. Storage
 
 Pods are ephemeral; data needs somewhere durable to live.
 
@@ -418,15 +518,15 @@ Persistent storage is requested with a **PersistentVolumeClaim (PVC)**; the CSI 
 
 ---
 
-## 13. Disaster Recovery (DR)
+## 14. Disaster Recovery (DR)
 
 DR is about surviving the loss of a zone — or an entire region.
 
-### 13.1 Multi-AZ (baseline, always do this)
+### 14.1 Multi-AZ (baseline, always do this)
 
 Spread nodes across **3 AZs** and run multiple replicas. If one AZ fails, the scheduler reschedules Pods onto healthy AZs. The EKS control plane is already multi-AZ by default.
 
-### 13.2 Multi-Region (for serious RTO/RPO targets)
+### 14.2 Multi-Region (for serious RTO/RPO targets)
 
 ```mermaid
 flowchart LR
@@ -453,7 +553,7 @@ Key ingredients: **GitOps** (ArgoCD/Flux) so the whole cluster is re-creatable f
 
 ---
 
-## 14. Backup — Velero
+## 15. Backup — Velero
 
 Multi-AZ protects against hardware failure; **backup** protects against *mistakes* (a bad deploy, an accidental `delete`) and enables migration.
 
@@ -473,11 +573,11 @@ flowchart LR
 
 ---
 
-## 15. Observability with OpenTelemetry (OTel)
+## 16. Observability with OpenTelemetry (OTel)
 
 You can't operate what you can't see. Modern EKS observability standardizes on **OpenTelemetry** — a vendor-neutral standard for the three signals: **metrics, logs, and traces**.
 
-### 15.1 The pipeline
+### 16.1 The pipeline
 
 ```mermaid
 flowchart LR
@@ -494,7 +594,7 @@ flowchart LR
 - **Logs** → **CloudWatch Logs** (via Fluent Bit / OTel).
 - **Visualize** → **Amazon Managed Grafana** or CloudWatch dashboards.
 
-### 15.2 Why OTel instead of proprietary agents
+### 16.2 Why OTel instead of proprietary agents
 
 | | Proprietary agent | OpenTelemetry |
 |---|---|---|
@@ -505,7 +605,7 @@ flowchart LR
 
 ---
 
-## 16. Putting it all together — production checklist
+## 17. Putting it all together — production checklist
 
 - **Cluster:** EKS control plane (managed, multi-AZ); GitOps (ArgoCD/Flux) as source of truth.
 - **Compute:** Managed Node Groups for baseline + **Karpenter** for elastic, right-sized, Spot-friendly scaling.
@@ -513,6 +613,7 @@ flowchart LR
 - **Traffic:** ingress via WAF/Shield → TLS on ALB → Ingress → Pod; **default-deny egress** + FQDN allow-list; **VPC Endpoints** for private AWS access; east-west **mTLS**.
 - **Scaling:** **HPA** for request-driven, **KEDA** for event-driven + scale-to-zero, **VPA** for right-sizing, **Karpenter** for nodes.
 - **Security:** IRSA / Pod Identity, RBAC, per-Pod security groups, Secrets Manager + KMS, ECR image scanning, GuardDuty EKS Protection.
+- **Multi-tenancy:** namespace per tenant + RBAC + ResourceQuota + default-deny NetworkPolicy + IRSA; dedicated nodes/Fargate or separate cluster/account for hard isolation.
 - **Storage:** EBS/EFS CSI drivers, PVCs, KMS-encrypted volumes.
 - **Upgrades:** one minor version at a time, control plane → add-ons → nodes; check deprecated APIs; PodDisruptionBudgets.
 - **Deployment:** GitOps (Argo CD/Flux); rolling by default, **canary/blue-green** via Argo Rollouts/Flagger for risky changes.

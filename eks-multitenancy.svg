@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" font-family="'Segoe UI', Arial, sans-serif" role="img" aria-label="EKS multi-tenancy isolation models">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#7b8794"/></marker>
+    <style>
+      .t{fill:#fff;font-weight:600}
+      .st{fill:#eef;font-size:10px}
+      .lbl{fill:#5a6b7b;font-size:11px}
+      .hd{font-size:13px;font-weight:800;letter-spacing:.5px}
+    </style>
+  </defs>
+
+  <rect width="1200" height="660" rx="14" fill="#f7f9fb"/>
+  <text x="34" y="44" font-size="23" font-weight="800" fill="#1a2733">Multi-Tenancy on Amazon EKS</text>
+  <text x="34" y="68" class="lbl" font-size="12.5">Many tenants (teams / customers) on shared infrastructure — isolated at every layer.</text>
+
+  <!-- ===== SOFT MULTI-TENANCY (shared cluster) ===== -->
+  <text x="34" y="104" class="hd" fill="#2f6fed">SOFT MULTI-TENANCY — one shared cluster, namespace per tenant</text>
+  <rect x="34" y="116" width="760" height="400" rx="14" fill="#fff" stroke="#2f6fed" stroke-width="2"/>
+  <text x="54" y="142" font-size="12.5" font-weight="700" fill="#2f6fed">EKS Cluster (shared control plane)</text>
+
+  <!-- tenant A -->
+  <rect x="54" y="156" width="226" height="256" rx="12" fill="#eef4ff" stroke="#4f8cf7"/>
+  <text x="70" y="180" font-size="12.5" font-weight="700" fill="#1a4fb0">Namespace: tenant-a</text>
+  <rect x="70" y="192" width="194" height="40" rx="7" fill="#2f6fed"/><text x="167" y="217" text-anchor="middle" class="t" font-size="11">Pods / workloads</text>
+  <rect x="70" y="240" width="194" height="30" rx="6" fill="#dbe7fb"/><text x="167" y="260" text-anchor="middle" class="lbl" font-size="10.5">ResourceQuota + LimitRange</text>
+  <rect x="70" y="278" width="194" height="30" rx="6" fill="#dbe7fb"/><text x="167" y="298" text-anchor="middle" class="lbl" font-size="10.5">RBAC (tenant-scoped roles)</text>
+  <rect x="70" y="316" width="194" height="30" rx="6" fill="#dbe7fb"/><text x="167" y="336" text-anchor="middle" class="lbl" font-size="10.5">NetworkPolicy (default-deny)</text>
+  <rect x="70" y="354" width="194" height="30" rx="6" fill="#dbe7fb"/><text x="167" y="374" text-anchor="middle" class="lbl" font-size="10.5">IRSA → tenant-a IAM role</text>
+
+  <!-- tenant B -->
+  <rect x="298" y="156" width="226" height="256" rx="12" fill="#e7f6ec" stroke="#3aa757"/>
+  <text x="314" y="180" font-size="12.5" font-weight="700" fill="#1f7a43">Namespace: tenant-b</text>
+  <rect x="314" y="192" width="194" height="40" rx="7" fill="#3aa757"/><text x="411" y="217" text-anchor="middle" class="t" font-size="11">Pods / workloads</text>
+  <rect x="314" y="240" width="194" height="30" rx="6" fill="#d6f0df"/><text x="411" y="260" text-anchor="middle" class="lbl" font-size="10.5">ResourceQuota + LimitRange</text>
+  <rect x="314" y="278" width="194" height="30" rx="6" fill="#d6f0df"/><text x="411" y="298" text-anchor="middle" class="lbl" font-size="10.5">RBAC (tenant-scoped roles)</text>
+  <rect x="314" y="316" width="194" height="30" rx="6" fill="#d6f0df"/><text x="411" y="336" text-anchor="middle" class="lbl" font-size="10.5">NetworkPolicy (default-deny)</text>
+  <rect x="314" y="354" width="194" height="30" rx="6" fill="#d6f0df"/><text x="411" y="374" text-anchor="middle" class="lbl" font-size="10.5">IRSA → tenant-b IAM role</text>
+
+  <!-- isolation / node pools -->
+  <rect x="542" y="156" width="234" height="256" rx="12" fill="#fdf2e7" stroke="#ec7211"/>
+  <text x="558" y="180" font-size="12.5" font-weight="700" fill="#b85c12">Harder isolation (optional)</text>
+  <rect x="558" y="192" width="202" height="44" rx="7" fill="#ec7211"/><text x="659" y="212" text-anchor="middle" class="t" font-size="10.5">Dedicated node groups</text><text x="659" y="227" text-anchor="middle" class="st">taints + tolerations per tenant</text>
+  <rect x="558" y="244" width="202" height="40" rx="7" fill="#fff" stroke="#f0b27f"/><text x="659" y="269" text-anchor="middle" class="lbl" font-size="10.5">Fargate profile per tenant</text>
+  <rect x="558" y="292" width="202" height="40" rx="7" fill="#fff" stroke="#f0b27f"/><text x="659" y="317" text-anchor="middle" class="lbl" font-size="10.5">Pod Security Standards</text>
+  <rect x="558" y="340" width="202" height="44" rx="7" fill="#fff" stroke="#f0b27f"/><text x="659" y="360" text-anchor="middle" class="lbl" font-size="10.5">Policy engine (Kyverno /</text><text x="659" y="375" text-anchor="middle" class="lbl" font-size="10.5">OPA Gatekeeper)</text>
+
+  <!-- shared layer -->
+  <rect x="54" y="424" width="722" height="76" rx="10" fill="#eef2f7" stroke="#cfd8e0"/>
+  <text x="70" y="447" class="lbl" font-size="11.5" font-weight="700" fill="#334">Shared by all tenants:</text>
+  <text x="70" y="468" class="lbl" font-size="11">Control plane · VPC CNI · CoreDNS · add-ons · observability (per-tenant labels)</text>
+  <text x="70" y="487" class="lbl" font-size="11">Cost allocation via tags/labels · cluster autoscaling (Karpenter) across tenants</text>
+
+  <!-- ===== HARD MULTI-TENANCY ===== -->
+  <text x="820" y="104" class="hd" fill="#d64545">HARD MULTI-TENANCY — cluster (or account) per tenant</text>
+  <rect x="820" y="116" width="346" height="400" rx="14" fill="#fff" stroke="#d64545" stroke-width="2"/>
+
+  <rect x="840" y="140" width="306" height="104" rx="10" fill="#fdeaea" stroke="#e58989"/>
+  <text x="993" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#c0392b">Tenant A — own EKS cluster</text>
+  <text x="993" y="192" text-anchor="middle" class="lbl" font-size="10.5">own VPC · own account</text>
+  <text x="993" y="210" text-anchor="middle" class="lbl" font-size="10.5">full control-plane isolation</text>
+  <text x="993" y="228" text-anchor="middle" class="lbl" font-size="10.5">strongest blast-radius limit</text>
+
+  <rect x="840" y="256" width="306" height="104" rx="10" fill="#fdeaea" stroke="#e58989"/>
+  <text x="993" y="286" text-anchor="middle" font-size="12" font-weight="700" fill="#c0392b">Tenant B — own EKS cluster</text>
+  <text x="993" y="308" text-anchor="middle" class="lbl" font-size="10.5">no noisy-neighbor risk</text>
+  <text x="993" y="326" text-anchor="middle" class="lbl" font-size="10.5">independent upgrades</text>
+  <text x="993" y="344" text-anchor="middle" class="lbl" font-size="10.5">highest cost + ops overhead</text>
+
+  <rect x="840" y="378" width="306" height="122" rx="10" fill="#fff7ed" stroke="#f0b27f"/>
+  <text x="856" y="402" class="lbl" font-size="11" font-weight="700" fill="#b85c12">Use when:</text>
+  <text x="856" y="423" class="lbl" font-size="10.5">• strict compliance / regulated data</text>
+  <text x="856" y="441" class="lbl" font-size="10.5">• untrusted or external tenants</text>
+  <text x="856" y="459" class="lbl" font-size="10.5">• strong per-tenant SLAs</text>
+  <text x="856" y="477" class="lbl" font-size="10.5">manage fleet with Karpenter + GitOps,</text>
+  <text x="856" y="493" class="lbl" font-size="10.5">EKS Blueprints / ACK, Terraform</text>
+
+  <!-- spectrum footer -->
+  <rect x="34" y="536" width="1132" height="92" rx="12" fill="#f0f4f8" stroke="#d5dde6"/>
+  <text x="50" y="562" font-size="12.5" font-weight="800" fill="#1a2733">Isolation spectrum (soft → hard):</text>
+  <text x="50" y="586" class="lbl" font-size="11.5">Namespace  →  + RBAC &amp; Quotas  →  + NetworkPolicy  →  + dedicated nodes/Fargate  →  + separate cluster  →  + separate AWS account</text>
+  <text x="50" y="610" class="lbl" font-size="11">More sharing = lower cost, more ops-friendly.  More separation = stronger security &amp; blast-radius control.  ·  by eswaran-hariharan</text>
+</svg>
